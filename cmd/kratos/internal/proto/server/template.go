@@ -11,32 +11,67 @@ var serviceTemplate = `
 package service
 
 import (
+	"aide-family-server/comm/validator"
 	{{- if .UseContext }}
 	"context"
 	{{- end }}
 	{{- if .UseIO }}
 	"io"
 	{{- end }}
-
+	"github.com/go-kratos/kratos/v2/log"
 	pb "{{ .Package }}"
 	{{- if .GoogleEmpty }}
 	"google.golang.org/protobuf/types/known/emptypb"
 	{{- end }}
 )
 
-type {{ .Service }}Service struct {
-	pb.Unimplemented{{ .Service }}Server
+type (
+	{{ .Service }}Service struct {
+		pb.Unimplemented{{ .Service }}Server
+	
+        logger *log.Helper
+		logic {{ .Service }}LogicInterface
+	}
+	
+	{{ .Service }}GraphqlService struct {
+		*{{ .Service }}Service
+	}
+
+	{{ .Service }}LogicInterface interface {
+		{{- $s1 := "google.protobuf.Empty" }}
+		{{ range .Methods }}
+		{{- if eq .Type 1 }}
+		{{ .Name }}(ctx context.Context, req {{ if eq .Request $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Request }}{{ end }}) ({{ if eq .Reply $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Reply }}{{ end }}, error)
+		{{- end }}
+		{{- end }}
+	}
+)
+
+func New{{ .Service }}Service(logic {{ .Service }}LogicInterface, logger log.Logger) *{{ .Service }}Service {
+	return &{{ .Service }}Service{logger: log.NewHelper(logger), logic: logic}
 }
 
-func New{{ .Service }}Service() *{{ .Service }}Service {
-	return &{{ .Service }}Service{}
+func New{{ .Service }}GraphqlService(s *{{ .Service }}Service) *{{ .Service }}GraphqlService {
+	return &{{ .Service }}GraphqlService{ {{ .Service }}Service: s }
 }
 
 {{- $s1 := "google.protobuf.Empty" }}
 {{ range .Methods }}
 {{- if eq .Type 1 }}
+func (s *{{ .Service }}GraphqlService) {{ .Name }}(ctx context.Context, args struct {
+	In {{ if eq .Request $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Request }}{{ end }}
+}) ({{ if eq .Reply $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Reply }}{{ end }}, error) {
+	return s.{{ .Service }}Service.{{ .Name }}(ctx, args.In)
+}
+{{- end }}
+{{- end }}
+
+
+{{- $s1 := "google.protobuf.Empty" }}
+{{ range .Methods }}
+{{- if eq .Type 1 }}
 func (s *{{ .Service }}Service) {{ .Name }}(ctx context.Context, req {{ if eq .Request $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Request }}{{ end }}) ({{ if eq .Reply $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Reply }}{{ end }}, error) {
-	return {{ if eq .Reply $s1 }}&emptypb.Empty{}{{ else }}&pb.{{ .Reply }}{}{{ end }}, nil
+	return validator.Check(ctx, req, s.logic.{{ .Name }})
 }
 
 {{- else if eq .Type 2 }}
