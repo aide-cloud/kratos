@@ -11,7 +11,6 @@ var serviceTemplate = `
 package service
 
 import (
-	"aide-family-server/comm/validator"
 	{{- if .UseContext }}
 	"context"
 	{{- end }}
@@ -71,7 +70,7 @@ func (s *{{ .Service }}GraphqlService) {{ .Name }}(ctx context.Context, args str
 {{ range .Methods }}
 {{- if eq .Type 1 }}
 func (s *{{ .Service }}Service) {{ .Name }}(ctx context.Context, req {{ if eq .Request $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Request }}{{ end }}) ({{ if eq .Reply $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Reply }}{{ end }}, error) {
-	return validator.Check(ctx, req, s.logic.{{ .Name }})
+	return Validate(ctx, req, s.logic.{{ .Name }})
 }
 
 {{- else if eq .Type 2 }}
