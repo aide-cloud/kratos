@@ -23,7 +23,7 @@ func TestModulePath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mod := `module github.com/go-kratos/kratos/v2
+	mod := `module github.com/aide-cloud/kratos/v2
 
 go 1.16`
 	_, err = f.WriteString(mod)
@@ -35,8 +35,8 @@ go 1.16`
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p != "github.com/go-kratos/kratos/v2" {
-		t.Fatalf("want: %s, got: %s", "github.com/go-kratos/kratos/v2", p)
+	if p != "github.com/aide-cloud/kratos/v2" {
+		t.Fatalf("want: %s, got: %s", "github.com/aide-cloud/kratos/v2", p)
 	}
 
 	t.Cleanup(func() { os.RemoveAll("/tmp/test_mod") })

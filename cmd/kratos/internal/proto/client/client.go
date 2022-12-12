@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-kratos/kratos/cmd/kratos/v2/internal/base"
+	"github.com/aide-cloud/kratos/cmd/kratos/v2/internal/base"
 
 	"github.com/spf13/cobra"
 )

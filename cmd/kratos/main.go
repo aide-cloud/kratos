@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/go-kratos/kratos/cmd/kratos/v2/internal/change"
-	"github.com/go-kratos/kratos/cmd/kratos/v2/internal/project"
-	"github.com/go-kratos/kratos/cmd/kratos/v2/internal/proto"
-	"github.com/go-kratos/kratos/cmd/kratos/v2/internal/run"
-	"github.com/go-kratos/kratos/cmd/kratos/v2/internal/upgrade"
+	"github.com/aide-cloud/kratos/cmd/kratos/v2/internal/change"
+	"github.com/aide-cloud/kratos/cmd/kratos/v2/internal/project"
+	"github.com/aide-cloud/kratos/cmd/kratos/v2/internal/proto"
+	"github.com/aide-cloud/kratos/cmd/kratos/v2/internal/run"
+	"github.com/aide-cloud/kratos/cmd/kratos/v2/internal/upgrade"
 
 	"github.com/spf13/cobra"
 )
