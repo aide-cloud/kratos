@@ -17,7 +17,7 @@ import (
 	{{- if .UseIO }}
 	"io"
 	{{- end }}
-	"github.com/aide-cloud/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/log"
 	pb "{{ .Package }}"
 	{{- if .GoogleEmpty }}
 	"google.golang.org/protobuf/types/known/emptypb"
