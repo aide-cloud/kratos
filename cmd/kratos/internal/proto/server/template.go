@@ -31,12 +31,9 @@ type (
         logger *log.Helper
 		logic {{ .Service }}LogicInterface
 	}
-	
-	{{ .Service }}GraphqlService struct {
-		*{{ .Service }}Service
-	}
 
 	{{ .Service }}LogicInterface interface {
+		{{- /* delete empty line */ -}}
 		{{- $s1 := "google.protobuf.Empty" }}
 		{{ range .Methods }}
 		{{- if eq .Type 1 }}
@@ -49,22 +46,6 @@ type (
 func New{{ .Service }}Service(logic {{ .Service }}LogicInterface, logger log.Logger) *{{ .Service }}Service {
 	return &{{ .Service }}Service{logger: log.NewHelper(logger), logic: logic}
 }
-
-func New{{ .Service }}GraphqlService(s *{{ .Service }}Service) *{{ .Service }}GraphqlService {
-	return &{{ .Service }}GraphqlService{ {{ .Service }}Service: s }
-}
-
-{{- $s1 := "google.protobuf.Empty" }}
-{{ range .Methods }}
-{{- if eq .Type 1 }}
-func (s *{{ .Service }}GraphqlService) {{ .Name }}(ctx context.Context, args struct {
-	In {{ if eq .Request $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Request }}{{ end }}
-}) ({{ if eq .Reply $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Reply }}{{ end }}, error) {
-	return s.{{ .Service }}Service.{{ .Name }}(ctx, args.In)
-}
-{{- end }}
-{{- end }}
-
 
 {{- $s1 := "google.protobuf.Empty" }}
 {{ range .Methods }}
