@@ -27,7 +27,7 @@ import (
 type (
 	{{ .Service }}Logic struct {
         logger *log.Helper
-		repo {{ .Service }}RepoInterface
+		repo   {{ .Service }}RepoInterface
 	}
 
 	{{ .Service }}RepoInterface interface {
@@ -40,7 +40,7 @@ type (
 )
 
 func New{{ .Service }}Logic(repo {{ .Service }}RepoInterface, logger log.Logger) *{{ .Service }}Logic {
-	return &{{ .Service }}Logic{logger: log.NewHelper(logger), repo: repo}
+	return &{{ .Service }}Logic{repo: repo, logger: log.NewHelper(log.With(logger, "module", "biz/{{ .Service }}"))}
 }
 
 {{- $s1 := "google.protobuf.Empty" }}

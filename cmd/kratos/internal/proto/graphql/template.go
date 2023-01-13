@@ -8,7 +8,7 @@ import (
 //nolint:lll
 var serviceTemplate = `
 {{- /* delete empty line */ -}}
-package service
+package graph
 
 import (
 	{{- if .UseContext }}
@@ -26,7 +26,7 @@ import (
 
 type (
 	{{ .Service }}GraphqlService struct {
-		*{{ .Service }}Service
+		*service.{{ .Service }}Service
 		logger *log.Helper
 	}
 
@@ -36,8 +36,8 @@ type (
 	{{- end }}
 )
 
-func New{{ .Service }}GraphqlService(s *{{ .Service }}Service, logger log.Logger) *{{ .Service }}GraphqlService {
-	return &{{ .Service }}GraphqlService{ {{ .Service }}Service: s, logger: log.NewHelper(logger)}
+func New{{ .Service }}GraphqlService(s *service.{{ .Service }}Service, logger log.Logger) *{{ .Service }}GraphqlService {
+	return &{{ .Service }}GraphqlService{ {{ .Service }}Service: s, logger: log.NewHelper(log.With(logger, "module", "graph/{{ .Service }}"))}
 }
 
 {{- $s1 := "google.protobuf.Empty" }}

@@ -20,12 +20,12 @@ import (
 type (
 	{{ .Service }}Repo struct {
         logger *log.Helper
-		data *Data
+		data   *Data
 	}
 )
 
 func New{{ .Service }}Repo(data *Data, logger log.Logger) *{{ .Service }}Repo {
-	return &{{ .Service }}Repo{logger: log.NewHelper(logger), data: data}
+	return &{{ .Service }}Repo{data: data, logger: log.NewHelper(log.With(logger, "module", "data/{{ .Service }}"))}
 }
 `
 

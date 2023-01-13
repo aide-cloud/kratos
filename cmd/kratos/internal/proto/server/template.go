@@ -44,7 +44,7 @@ type (
 )
 
 func New{{ .Service }}Service(logic {{ .Service }}LogicInterface, logger log.Logger) *{{ .Service }}Service {
-	return &{{ .Service }}Service{logger: log.NewHelper(logger), logic: logic}
+	return &{{ .Service }}Service{logic: logic, logger: log.NewHelper(log.With(logger, "module", "service/{{ .Service }}"))}
 }
 
 {{- $s1 := "google.protobuf.Empty" }}
