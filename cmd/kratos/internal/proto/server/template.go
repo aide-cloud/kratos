@@ -52,7 +52,7 @@ func New{{ .Service }}Service(logic {{ .Service }}LogicInterface, logger log.Log
 }
 
 func (l *{{ .Service }}Service) validate(req any) error {
-	if v, ok := req.(validator); ok {
+	if v, ok := req.({{ .Service }}RequestValidator); ok {
 		if err := v.Validate(); err != nil {
 			l.logger.Warnf("validate req: %v", err)
 			return err
