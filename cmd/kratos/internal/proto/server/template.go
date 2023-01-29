@@ -25,21 +25,25 @@ import (
 )
 
 type (
-	{{ .Service }}Service struct {
-		pb.Unimplemented{{ .Service }}Server
-	
-        logger *log.Helper
-		logic {{ .Service }}LogicInterface
+	{{ .Service }}RequestValidator interface {
+		Validate() error
 	}
 
 	{{ .Service }}LogicInterface interface {
-		{{- /* delete empty line */ -}}
 		{{- $s1 := "google.protobuf.Empty" }}
+		{{- /* delete empty line */ -}}
 		{{ range .Methods }}
 		{{- if eq .Type 1 }}
 		{{ .Name }}(ctx context.Context, req {{ if eq .Request $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Request }}{{ end }}) ({{ if eq .Reply $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Reply }}{{ end }}, error)
 		{{- end }}
 		{{- end }}
+	}
+
+	{{ .Service }}Service struct {
+		pb.Unimplemented{{ .Service }}Server
+	
+        logger *log.Helper
+		logic {{ .Service }}LogicInterface
 	}
 )
 
@@ -47,15 +51,32 @@ func New{{ .Service }}Service(logic {{ .Service }}LogicInterface, logger log.Log
 	return &{{ .Service }}Service{logic: logic, logger: log.NewHelper(log.With(logger, "module", "service/{{ .Service }}"))}
 }
 
+func (l *{{ .Service }}Service) validate(req any) error {
+	if v, ok := req.(validator); ok {
+		if err := v.Validate(); err != nil {
+			l.logger.Warnf("validate req: %v", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
 {{- $s1 := "google.protobuf.Empty" }}
+{{- /* delete empty line */ -}}
 {{ range .Methods }}
 {{- if eq .Type 1 }}
-func (s *{{ .Service }}Service) {{ .Name }}(ctx context.Context, req {{ if eq .Request $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Request }}{{ end }}) ({{ if eq .Reply $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Reply }}{{ end }}, error) {
-	return Validate(ctx, req, s.logic.{{ .Name }})
+
+func (l *{{ .Service }}Service) {{ .Name }}(ctx context.Context, req {{ if eq .Request $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Request }}{{ end }}) ({{ if eq .Reply $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Reply }}{{ end }}, error) {
+	if err := l.validate(req); err != nil {
+		l.logger.Warnf("{{ .Name }} req: %v", err)
+		return nil, err
+	}
+	return l.logic.{{ .Name }}(ctx, req)
 }
 
 {{- else if eq .Type 2 }}
-func (s *{{ .Service }}Service) {{ .Name }}(conn pb.{{ .Service }}_{{ .Name }}Server) error {
+func (l *{{ .Service }}Service) {{ .Name }}(conn pb.{{ .Service }}_{{ .Name }}Server) error {
 	for {
 		req, err := conn.Recv()
 		if err == io.EOF {
@@ -73,7 +94,7 @@ func (s *{{ .Service }}Service) {{ .Name }}(conn pb.{{ .Service }}_{{ .Name }}Se
 }
 
 {{- else if eq .Type 3 }}
-func (s *{{ .Service }}Service) {{ .Name }}(conn pb.{{ .Service }}_{{ .Name }}Server) error {
+func (l *{{ .Service }}Service) {{ .Name }}(conn pb.{{ .Service }}_{{ .Name }}Server) error {
 	for {
 		req, err := conn.Recv()
 		if err == io.EOF {
@@ -86,7 +107,7 @@ func (s *{{ .Service }}Service) {{ .Name }}(conn pb.{{ .Service }}_{{ .Name }}Se
 }
 
 {{- else if eq .Type 4 }}
-func (s *{{ .Service }}Service) {{ .Name }}(req {{ if eq .Request $s1 }}*emptypb.Empty
+func (l *{{ .Service }}Service) {{ .Name }}(req {{ if eq .Request $s1 }}*emptypb.Empty
 {{ else }}*pb.{{ .Request }}{{ end }}, conn pb.{{ .Service }}_{{ .Name }}Server) error {
 	for {
 		err := conn.Send(&pb.{{ .Reply }}{})
