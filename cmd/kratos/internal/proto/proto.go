@@ -7,6 +7,7 @@ import (
 	"github.com/aide-cloud/kratos/cmd/kratos/v2/internal/proto/data"
 	"github.com/aide-cloud/kratos/cmd/kratos/v2/internal/proto/gateway"
 	"github.com/aide-cloud/kratos/cmd/kratos/v2/internal/proto/graphql"
+	"github.com/aide-cloud/kratos/cmd/kratos/v2/internal/proto/sdl"
 	"github.com/aide-cloud/kratos/cmd/kratos/v2/internal/proto/server"
 	"github.com/aide-cloud/kratos/cmd/kratos/v2/internal/proto/types"
 	"github.com/spf13/cobra"
@@ -28,4 +29,5 @@ func init() {
 	CmdProto.AddCommand(graphql.CmdServer)
 	CmdProto.AddCommand(gateway.CmdServer)
 	CmdProto.AddCommand(types.CmdServer)
+	CmdProto.AddCommand(sdl.CmdServer)
 }

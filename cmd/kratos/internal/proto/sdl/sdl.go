@@ -1,4 +1,4 @@
-package types
+package sdl
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 
 // CmdServer the service command.
 var CmdServer = &cobra.Command{
-	Use:   "types",
+	Use:   "sdl",
 	Short: "Generate the proto Server implementations",
 	Long:  "Generate the proto Server implementations. Example: kratos proto types api/xxx.proto -target-dir=internal/service",
 	Run:   run,
@@ -48,42 +48,26 @@ func run(cmd *cobra.Command, args []string) {
 		msg Msg
 	)
 	proto.Walk(definition,
-		proto.WithOption(func(o *proto.Option) {
-			if o.Name == "go_package" && msg.Package == "" {
-				nameSlice := strings.Split(o.Constant.Source, ";")
-				msg.Package = nameSlice[len(nameSlice)-1]
-			}
-		}),
-		proto.WithPackage(func(p *proto.Package) {
-			if msg.Package == "" {
-				nameSlice := strings.Split(p.Name, ".")
-				msg.Package = nameSlice[len(nameSlice)-1]
-			}
-		}),
 		proto.WithMessage(func(m *proto.Message) {
-			var ms = &Message{
+			message := &Message{
 				Name: m.Name,
 			}
-
 			for _, e := range m.Elements {
 				field, ok := e.(*proto.NormalField)
-
 				if ok {
 					// 自定义类型
 					if field.InlineComment != nil {
-						customTypeName := parseType(field.InlineComment.Message())
+						customTypeName := parseSdlType(field.InlineComment.Message())
 						if customTypeName != "" {
 							field.Type = customTypeName
 						}
-						msg.addPackage(parsePackage(field.InlineComment.Message()))
 					}
-
-					ms.Fields = append(ms.Fields, &Field{
-						Name:     toUpperCamelCaseField(field.Name),
-						Type:     field.Type,
+					message.addField(&Field{
+						Name:     field.Name,
+						Type:     parseFieldType(field.Type),
 						Repeated: field.Repeated,
+						Required: true,
 					})
-					field.Required = true
 					continue
 				}
 
@@ -91,21 +75,32 @@ func run(cmd *cobra.Command, args []string) {
 				if ok {
 					// 自定义类型
 					if mapField.InlineComment != nil {
-						customTypeName := parseType(mapField.InlineComment.Message())
+						customTypeName := parseSdlType(mapField.InlineComment.Message())
 						if customTypeName != "" {
 							mapField.Type = customTypeName
 						}
-						msg.addPackage(parsePackage(mapField.InlineComment.Message()))
 					}
-					ms.Fields = append(ms.Fields, &Field{
-						Name:     toUpperCamelCaseField(mapField.Name),
-						Type:     mapField.Type,
+					message.addField(&Field{
+						Name:     mapField.Name,
+						Type:     parseFieldType(mapField.Type),
 						Repeated: false,
+						Required: true,
 					})
 					continue
 				}
 			}
-			msg.Messages = append(msg.Messages, ms)
+			if m.Comment != nil {
+				msg.addMessage(parseFieldMode(m.Comment.Message()), message)
+			}
+		}),
+		proto.WithRPC(func(r *proto.RPC) {
+			if r.Comment != nil {
+				msg.addMethod(parseMethodMode(r.Comment.Message()), &Method{
+					Name:    r.Name,
+					Request: serviceName(r.RequestType),
+					Reply:   r.ReturnsType,
+				})
+			}
 		}),
 	)
 
@@ -116,12 +111,13 @@ func run(cmd *cobra.Command, args []string) {
 
 	{
 		moduleName := strings.ToLower(parseFileName(args[0]))
-		fileName := strings.ToLower(moduleName + ".pb.types.go")
+		fileName := strings.ToLower(moduleName + ".sdl.graphql")
 		to := path.Join(targetDir, fileName)
 		//if _, err := os.Stat(to); !os.IsNotExist(err) {
 		//	fmt.Fprintf(os.Stderr, "%s already exists: %s\n", fileName, to)
 		//}
 		msg.Source = moduleName + ".proto"
+		msg.Module = toUpperCamelCase(moduleName)
 		b, err := msg.execute()
 		if err != nil {
 			log.Fatal(err)
