@@ -48,6 +48,18 @@ func run(cmd *cobra.Command, args []string) {
 		msg Msg
 	)
 	proto.Walk(definition,
+		proto.WithOption(func(o *proto.Option) {
+			if o.Name == "go_package" && msg.Package == "" {
+				nameSlice := strings.Split(o.Constant.Source, ";")
+				msg.Package = nameSlice[len(nameSlice)-1]
+			}
+		}),
+		proto.WithPackage(func(p *proto.Package) {
+			if msg.Package == "" {
+				nameSlice := strings.Split(p.Name, ".")
+				msg.Package = nameSlice[len(nameSlice)-1]
+			}
+		}),
 		proto.WithMessage(func(m *proto.Message) {
 			var ms = &Message{
 				Name: m.Name,
@@ -67,7 +79,7 @@ func run(cmd *cobra.Command, args []string) {
 					}
 
 					ms.Fields = append(ms.Fields, &Field{
-						Name:     field.Name,
+						Name:     toUpperCamelCaseField(field.Name),
 						Type:     field.Type,
 						Repeated: field.Repeated,
 					})
@@ -89,7 +101,7 @@ func run(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(to); !os.IsNotExist(err) {
 			fmt.Fprintf(os.Stderr, "%s already exists: %s\n", fileName, to)
 		}
-		msg.Package = moduleName
+		msg.Source = moduleName + ".proto"
 		b, err := msg.execute()
 		if err != nil {
 			log.Fatal(err)
@@ -140,4 +152,11 @@ func parseInlineComment(s, tag string) string {
 		}
 	}
 	return ""
+}
+
+// field name转首字母大写的驼峰
+func toUpperCamelCaseField(s string) string {
+	s = strings.ReplaceAll(s, "_", " ")
+	s = cases.Title(language.Und, cases.NoLower).String(s)
+	return strings.ReplaceAll(s, " ", "")
 }

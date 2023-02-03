@@ -26,27 +26,23 @@ import (
 
 type (
 	{{ .Service }}GraphqlService struct {
-		*service.{{ .Service }}Service
+		pb.{{ .Service }}{{- if .ModeType }}Server{{ else }}Client{{ end }}
+		
 		logger *log.Helper
 	}
-
-	{{ range .Methods }}
-	{{ .Request }} struct {}
-	{{ .Reply }} struct {}
-	{{- end }}
 )
 
-func New{{ .Service }}GraphqlService(s *service.{{ .Service }}Service, logger log.Logger) *{{ .Service }}GraphqlService {
-	return &{{ .Service }}GraphqlService{ {{ .Service }}Service: s, logger: log.NewHelper(log.With(logger, "module", "graph/{{ .Service }}"))}
+func New{{ .Service }}GraphqlService(s pb.{{ .Service }}{{- if .ModeType }}Server{{ else }}Client{{ end }}, logger log.Logger) *{{ .Service }}GraphqlService {
+	return &{{ .Service }}GraphqlService{ {{ .Service }}{{- if .ModeType }}Server{{ else }}Client{{ end }}: s, logger: log.NewHelper(log.With(logger, "module", "graph/{{ .Service }}"))}
 }
 
 {{- $s1 := "google.protobuf.Empty" }}
 {{ range .Methods }}
 func (s *{{ .Service }}GraphqlService) {{ .Name }}(ctx context.Context, args struct {
-	In *{{ .Request }}
-}) (*{{ .Reply }}, error) {
+	In *pb.{{ .Request }}GraphqlType
+}) (*pb.{{ .Reply }}GraphqlType, error) {
 	// TODO use args.In params
-	res, err := s.{{ .Service }}Service.{{ .Name }}(ctx, &{{ if eq .Request $s1 }}emptypb.Empty{}{{ else }}pb.{{ .Request }}{}{{ end }})
+	res, err := s.{{ .Service }}{{- if .ModeType }}Server{{ else }}Client{{ end }}.{{ .Name }}(ctx, &{{ if eq .Request $s1 }}emptypb.Empty{}{{ else }}pb.{{ .Request }}{}{{ end }})
 	if err != nil {
 		s.logger.Errorf("{{ .Name }} err: +v%", err)
 		return nil, err
@@ -54,7 +50,7 @@ func (s *{{ .Service }}GraphqlService) {{ .Name }}(ctx context.Context, args str
 
 	s.logger.Debugf("{{ .Name }} res: +v%", res)
 
-	return &{{ .Reply }}{
+	return &pb.{{ .Reply }}GraphqlType{
 		// TODO 
 	}, nil
 }
@@ -75,6 +71,7 @@ type Service struct {
 	Package     string
 	Service     string
 	Methods     []*Method
+	ModeType    bool
 	GoogleEmpty bool
 
 	UseIO      bool
@@ -83,10 +80,11 @@ type Service struct {
 
 // Method is a proto method.
 type Method struct {
-	Service string
-	Name    string
-	Request string
-	Reply   string
+	Service  string
+	Name     string
+	Request  string
+	Reply    string
+	ModeType bool
 
 	// type: unary or stream
 	Type MethodType

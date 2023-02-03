@@ -22,8 +22,12 @@ var CmdServer = &cobra.Command{
 }
 var targetDir string
 
+// client or server
+var modeType bool
+
 func init() {
 	CmdServer.Flags().StringVarP(&targetDir, "target-dir", "t", "internal/service/graph", "generate target directory")
+	CmdServer.Flags().BoolVarP(&modeType, "mode-type", "m", false, "generate mode type")
 }
 
 func run(cmd *cobra.Command, args []string) {
@@ -66,6 +70,7 @@ func run(cmd *cobra.Command, args []string) {
 				cs.Methods = append(cs.Methods, &Method{
 					Service: serviceName(s.Name), Name: serviceName(r.Name), Request: r.RequestType,
 					Reply: r.ReturnsType, Type: getMethodType(r.StreamsRequest, r.StreamsReturns),
+					ModeType: modeType,
 				})
 			}
 			res = append(res, cs)
@@ -75,12 +80,14 @@ func run(cmd *cobra.Command, args []string) {
 		fmt.Printf("Target directory: %s does not exsit\n", targetDir)
 		return
 	}
+
 	for _, s := range res {
 		to := path.Join(targetDir, strings.ToLower(s.Service)+".graphql.go")
 		if _, err := os.Stat(to); !os.IsNotExist(err) {
 			fmt.Fprintf(os.Stderr, "%s already exists: %s\n", s.Service, to)
 			continue
 		}
+		s.ModeType = modeType
 		b, err := s.execute()
 		if err != nil {
 			log.Fatal(err)
