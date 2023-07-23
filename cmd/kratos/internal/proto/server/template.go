@@ -25,10 +25,6 @@ import (
 )
 
 type (
-	{{ .Service }}RequestValidator interface {
-		Validate() error
-	}
-
 	{{ .Service }}LogicInterface interface {
 		{{- $s1 := "google.protobuf.Empty" }}
 		{{- /* delete empty line */ -}}
@@ -51,27 +47,13 @@ func New{{ .Service }}Service(logic {{ .Service }}LogicInterface, logger log.Log
 	return &{{ .Service }}Service{logic: logic, logger: log.NewHelper(log.With(logger, "module", "service/{{ .Service }}"))}
 }
 
-func (l *{{ .Service }}Service) validate(req any) error {
-	if v, ok := req.({{ .Service }}RequestValidator); ok {
-		if err := v.Validate(); err != nil {
-			l.logger.Warnf("validate req: %v", err)
-			return err
-		}
-	}
-
-	return nil
-}
-
 {{- $s1 := "google.protobuf.Empty" }}
 {{- /* delete empty line */ -}}
 {{ range .Methods }}
 {{- if eq .Type 1 }}
 
 func (l *{{ .Service }}Service) {{ .Name }}(ctx context.Context, req {{ if eq .Request $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Request }}{{ end }}) ({{ if eq .Reply $s1 }}*emptypb.Empty{{ else }}*pb.{{ .Reply }}{{ end }}, error) {
-	if err := l.validate(req); err != nil {
-		l.logger.Warnf("{{ .Name }} req: %v", err)
-		return nil, err
-	}
+    l.logger.Debugf("{{ .Name }} req: %v", req)
 	return l.logic.{{ .Name }}(ctx, req)
 }
 
