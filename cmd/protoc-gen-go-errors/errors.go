@@ -15,8 +15,10 @@ import (
 )
 
 const (
-	errorsPackage = protogen.GoImportPath("github.com/go-kratos/kratos/v2/errors")
-	fmtPackage    = protogen.GoImportPath("fmt")
+	errorsPackage  = protogen.GoImportPath("github.com/go-kratos/kratos/v2/errors")
+	fmtPackage     = protogen.GoImportPath("fmt")
+	contextPackage = protogen.GoImportPath("context")
+	i18nPackage    = protogen.GoImportPath("github.com/nicksnyder/go-i18n/v2/i18n")
 )
 
 var enCases = cases.Title(language.AmericanEnglish, cases.NoLower)
@@ -32,7 +34,9 @@ func generateFile(gen *protogen.Plugin, file *protogen.File) *protogen.Generated
 	g.P()
 	g.P("package ", file.GoPackageName)
 	g.P()
+	g.QualifiedGoIdent(contextPackage.Ident(""))
 	g.QualifiedGoIdent(fmtPackage.Ident(""))
+	g.QualifiedGoIdent(i18nPackage.Ident(""))
 	generateFileContent(gen, file, g)
 	return g
 }
@@ -46,6 +50,12 @@ func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.
 	g.P("// This is a compile-time assertion to ensure that this generated file")
 	g.P("// is compatible with the kratos package it is being compiled against.")
 	g.P("const _ = ", errorsPackage.Ident("SupportPackageIsVersion1"))
+	g.P("type localizeKey struct{}")
+	g.P("func FromContext(ctx context.Context) *i18n.Localizer {\n\treturn ctx.Value(localizeKey{}).(*i18n.Localizer)\n}")
+	g.P()
+	g.P("func WithLocalize(ctx context.Context, localize *i18n.Localizer) context.Context {\n\treturn context.WithValue(context.Background(), localizeKey{}, localize)\n}")
+	g.P()
+	g.P("// GetI18nMessage 获取错误信息\nfunc GetI18nMessage(ctx context.Context, id string, args ...interface{}) string {\n\tif id == \"\" {\n\t\treturn \"\"\n\t}\n\tconfig := &i18n.LocalizeConfig{\n\t\tMessageID: id,\n\t}\n\tif len(args) > 0 {\n\t\tconfig.TemplateData = args[0]\n\t}\n\n\tlocalize, err := FromContext(ctx).Localize(config)\n\tif err != nil {\n\t\treturn \"\"\n\t}\n\treturn localize\n}")
 	g.P()
 	index := 0
 	for _, enum := range file.Enums {
@@ -71,6 +81,7 @@ func genErrorsReason(_ *protogen.Plugin, _ *protogen.File, g *protogen.Generated
 	var ew errorWrapper
 	for _, v := range enum.Values {
 		enumCode := code
+
 		eCode := proto.GetExtension(v.Desc.Options(), errors.E_Code)
 		if ok := eCode.(int32); ok != 0 {
 			enumCode = int(ok)
@@ -88,14 +99,18 @@ func genErrorsReason(_ *protogen.Plugin, _ *protogen.File, g *protogen.Generated
 		if comment == "" {
 			comment = v.Comments.Trailing.String()
 		}
-
+		id := proto.GetExtension(v.Desc.Options(), errors.E_Id).(string)
+		message := proto.GetExtension(v.Desc.Options(), errors.E_Message).(string)
 		err := &errorInfo{
 			Name:       string(enum.Desc.Name()),
 			Value:      string(v.Desc.Name()),
-			CamelValue: case2Camel(string(v.Desc.Name())),
 			HTTPCode:   enumCode,
+			CamelValue: case2Camel(string(v.Desc.Name())),
 			Comment:    comment,
 			HasComment: len(comment) > 0,
+			ID:         id,
+			Message:    message,
+			HasI18n:    id != "" && message != "",
 		}
 		ew.Errors = append(ew.Errors, err)
 	}
