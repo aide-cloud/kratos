@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/aide-cloud/kratos/cmd/protoc-gen-go-errors/errors"
+	"github.com/aide-cloud/kratos/protoc-gen-go-errors/errors"
 )
 
 const (
